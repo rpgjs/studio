@@ -64,6 +64,8 @@ export class Tile {
                     return +prop.value as any
                 case 'bool':
                     return prop.value == 'true' ? true : false as any
+                default:
+                    return prop.value as any
             }
         }
         return null

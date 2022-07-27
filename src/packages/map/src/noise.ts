@@ -8,7 +8,8 @@ export interface Crop {
   distance?: number
   frequency?: number,
   terrainHeight?: number,
-  margin?: number
+  margin?: number,
+  variation?: number
 }
 
 export interface NoiseOptions {
@@ -36,6 +37,7 @@ class NoiseFilter {
   static DEFAULT_FREQUENCY: number = 0.02
   static DEFAULT_MARGIN: number = 10
   static DEFAULT_TERRAIN_HEIGHT: number = -1
+  static DEFAULT_VARIATION: number = 3
 
   constructor(
     private x: number, 
@@ -54,9 +56,14 @@ class NoiseFilter {
   }
 
   private getIntervalTiles(options: NoiseCropOptions) {
-    const { distance = NoiseFilter.DEFAULT_DISTANCE, frequency = NoiseFilter.DEFAULT_FREQUENCY, simplexEdge } = options
+    const { 
+      distance = NoiseFilter.DEFAULT_DISTANCE, 
+      frequency = NoiseFilter.DEFAULT_FREQUENCY, 
+      simplexEdge, 
+      variation = NoiseFilter.DEFAULT_VARIATION 
+    } = options
     let seedHeight = this.simplex[simplexEdge].noise2D(this.x * frequency, this.y * frequency)
-    return distance + Math.abs(Math.round(seedHeight * distance / 3))
+    return distance + Math.abs(Math.round(seedHeight * variation))
   }
 
   private applyCropLeftTop(options: NoiseCropOptions, prop: string) {

@@ -333,6 +333,54 @@ export class Map2d extends Layer {
         return obj
     }
 
+    createMiniMap(rules?: { groupParentName?: string | RegExp, color: string }[]): number[][][] {
+        const map: number[][][] = []
+        const layers = this.getAllLayers()
+
+        function hexToRgb(hex) {
+            var result = /^#?([a-f\d]{2})?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? [parseInt(result[2], 16), parseInt(result[3], 16), parseInt(result[4], 16)] : [0, 0, 0]
+        }
+
+        for (let layer of layers) {
+            if (layer.type != TiledLayerType.Tile) continue
+            layer.matrixForEach((id, x, y) => {
+                const assignColor = (color) => map[y][x] = hexToRgb(color)
+
+                if (!map[y]) map[y] = []
+                if (!map[y][x])  map[y][x] = [0, 0, 0]
+                if (!id) return
+                const tileset = this.findTileset(id)
+                if (!tileset) return
+                const tile = tileset.tileset.getTile(id - tileset.firstGid)
+                if (!tile) return
+                if (rules) {
+                    for (let rule of rules) {
+                        const { groupParentName, color } = rule
+                        if (groupParentName) {
+                            const parent = layer.getParentLayer()
+                            if (parent) {
+                                if (groupParentName instanceof RegExp) {
+                                    if (groupParentName.test(parent?.name)) {
+                                        assignColor(color)
+                                    }
+                                }
+                                else if (parent.name == groupParentName) {
+                                    assignColor(color)
+                                }
+                            }
+                            
+                        }
+                    }
+                }
+                const color = tile.getProperty<string>('color')
+                if (!color) return
+                assignColor(color)
+            })
+        }
+        return map
+    }
+
     toXML() {
         return {
             _declaration: { _attributes: { version: '1.0', encoding: 'UTF-8' } },
