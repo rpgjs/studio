@@ -1,67 +1,69 @@
 import { MathUtils } from "./math"
 
 export class NoiseGrid {
-    
-    getRand ( min, max) {
+    rows
+    cols
+    noOfPaths
+    pathWidth
+    arr
+
+    constructor(row, col, w) {
+        this.rows = row								//	number of rows
+		this.cols = col								//	number of cols
+		this.noOfPaths = ( row * col)				//	number of possible paths on map
+		this.pathWidth = w							//	width of path on map
+		this.arr = []								//	hold all the possible paths and represent as 2D array
+		for ( let r = 0; r < row; r ++) {
+			this.arr.push ([])
+			for ( let c = 0; c < col; c ++)
+				this.arr[r].push (0)
+		}
+    }
+
+    static getRand ( min, max) {
         return Math.floor (( Math.random () * ( max - min)) + min)
     }
     
-    generate ( c, r, s, str) {
-        let tmp: any = []
-        for ( let i = 0; i < r; i ++) {
-            tmp.push ([])
-            for ( let j = 0; j < c; j ++)
-                tmp[i].push ({ c: j, r: i, s: s, value: 0 })
-        }
-        let d: any = []
-        for ( let i = 0; i < str; i ++)	{
-            if ( !d.length) d.push ( this.getRand( 1, 5))
-            let r: any = []
-            switch ( d[ d.length - 1]) {
-                case 1:	r = [ 1, 2, 4];	break
-                case 2:	r = [ 1, 2, 3];	break
-                case 3:	r = [ 2, 3, 4];	break
-                case 4:	r = [ 1, 3, 4];	break
-            }
-            d.push ( r[ this.getRand ( 0, r.length)])
-        }
-        
-        let steps, placed, _r, _c, dc, dr
-        placed = 0
-        _r = this.getRand ( 0, tmp.length - 1)
-        _c = this.getRand ( 0, tmp[0].length - 1)
-        do {
-            if ( !steps) {
-                steps = this.getRand ( 8, 10)
-                dc = 0
-                dr = 0
-                switch ( d.pop()) {
-                    case 1:	dr = 1;		break
-                    case 2:	dc = 1;		break
-                    case 3:	dr = -1;	break
-                    case 4:	dc = -1;	break
-                }
-                placed ++
-            } else {
-                do {
-                    if ( tmp [_r] != undefined && tmp [_r][_c] != undefined) {
-                        tmp [_r][_c].value = 1
-                        _r += dr
-                        _c += dc
-                        steps --
-                    } else {
-                        let t: any = []
-                        for ( let t1 of tmp)
-                            for ( let t2 of t1)
-                                if ( t2.value == 1) t.push (t2)
-                        let rand = this.getRand ( 0, t.length - 1)
-                        _r = t[ rand].r
-                        _c = t[ rand].c
-                        steps = 0
-                    }
-                } while ( steps > 0)
-            }
-        } while ( d.length)
-        return tmp
-    }
+    setRandomPath() {
+		let r = Math.floor ( Math.sqrt( this.rows)),
+			c = Math.floor ( Math.sqrt( this.cols))
+		for ( let _r = NoiseGrid.getRand( 1, 2); _r < this.rows; _r += r)
+			for ( let _c = NoiseGrid.getRand( 1, 2); _c < this.cols; _c += c) {
+				let __r = _r + NoiseGrid.getRand( 1, 3) * this.pathWidth, __c = _c + NoiseGrid.getRand( 1, 3) * this.pathWidth, steps = 0
+				let d = NoiseGrid.getRand ( 0, 5)
+				if ( d)	this.addBlock ( __r, __c, this.pathWidth)
+				do {
+					switch ( d) {
+						case 1:
+							this.addBlock ( __r - steps, __c, this.pathWidth)
+						break
+						case 2:
+							this.addBlock ( __r - steps, __c, this.pathWidth)
+							this.addBlock ( __r, __c - steps, this.pathWidth)
+						break
+						case 3:
+							this.addBlock ( __r - steps, __c, this.pathWidth)
+							this.addBlock ( __r, __c - steps, this.pathWidth)
+							this.addBlock ( __r + steps, __c, this.pathWidth)
+						break
+						case 4:
+							this.addBlock ( __r - steps, __c, this.pathWidth)
+							this.addBlock ( __r, __c - steps, this.pathWidth)
+							this.addBlock ( __r + steps, __c, this.pathWidth)
+							this.addBlock ( __r, __c + steps, this.pathWidth)
+						break
+					}
+					steps ++
+				} while ( steps < r || steps < c)
+			}
+
+        return this.arr
+	}
+
+    addBlock( r, c, s) {
+		for ( let _r = r; _r < r + s; _r ++)
+			for ( let _c = c; _c < c + s; _c ++)
+				if ( this.arr [ _r] != undefined && this.arr [ _r][ _c] != undefined && !this.arr [ _r][ _c])
+					this.arr [ _r][ _c] = 1
+	}
 }

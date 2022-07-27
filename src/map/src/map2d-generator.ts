@@ -67,6 +67,11 @@ interface Map2dGeneratorOptions extends Map2dOptions {
     seedId?: string
 }
 
+enum GeneratePatternType {
+    Terrain = 'terrain',
+    Grid = 'grid'
+}
+
 export class Map2dGenerator extends Map2d {
     private terrainRules: TerrainRules[] = []
     private diffusionRules?: DiffusionRules[]
@@ -113,7 +118,7 @@ export class Map2dGenerator extends Map2d {
         }
     }
 
-    generateTerrain() {
+    generateTerrain(type?: GeneratePatternType) {
         if (this.generatedNb > 0) {
             console.warn('[Warning] Terrain is already generated')
         }
@@ -140,43 +145,24 @@ export class Map2dGenerator extends Map2d {
             threshold: subNoiseParams?.threshold ?? this.threshold,
             seedId: seedId ? `sub${seedId}` : 'subseed'
         })
-        const noiseArray = noise.generate(this.worldX, this.worldY)
-        const subNoiseArray = subNoise.generate(this.worldX, this.worldY)
+        let noiseArray, subNoiseArray
+        switch (type) {
+            case GeneratePatternType.Grid:
+                noiseArray = noise.generateGrid()
+                subNoiseArray = noiseArray
+                break;
+        
+            default:
+                noiseArray = noise.generate(this.worldX, this.worldY)
+                subNoiseArray = subNoise.generate(this.worldX, this.worldY)
+                break;
+        }
         this.applyTilesRule(noiseArray, subNoiseArray)
         this.crop(1, 1, this.width-1, this.height-1)
         this.autocomplete()
         this.diffusion(noiseArray, subNoiseArray)
         this.transferMaps()
         this.generatedNb++
-    }
-
-    generateGrid() {
-      const noiseGrid = new NoiseGrid()
-      const size = 10
-      const noiseArray = noiseGrid.generate(50, 50, size, 10)
-      const map: number[][] = []
-      for (let i=0 ; i < this.width ; i++) {
-        map[i] = []
-        for (let j=0 ; j < this.height ; j++) {
-            if (!noiseArray[i]) {
-                map[i][j] = 0.1
-                continue
-            }
-            if (!noiseArray[i][j]) {
-                map[i][j] = 0.1
-                continue
-            }
-            const { value } = noiseArray[i][j]
-            if (value == 1) {
-                map[i][j] = 0.5
-            }
-            else {
-                map[i][j] = 0.1
-            }
-        }
-      }
-      this.applyTilesRule(map, map)
-      this.crop(1, 1, this.width-1, this.height-1)
     }
 
     applyTilesRule(grid: number[][], subgrid: number[][]) {

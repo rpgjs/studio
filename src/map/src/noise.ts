@@ -2,11 +2,13 @@ import { MathUtils, Vector2D } from './math'
 import SimplexNoise from 'simplex-noise';
 import { Area } from './map2d-generator';
 import { Map2d } from './map2d';
+import { NoiseGrid } from './noise-grid';
 
 export interface Crop {
   distance?: number
   frequency?: number,
-  terrainHeight?: number
+  terrainHeight?: number,
+  margin?: number
 }
 
 export interface NoiseOptions {
@@ -54,14 +56,14 @@ class NoiseFilter {
   private getIntervalTiles(options: NoiseCropOptions) {
     const { distance = NoiseFilter.DEFAULT_DISTANCE, frequency = NoiseFilter.DEFAULT_FREQUENCY, simplexEdge } = options
     let seedHeight = this.simplex[simplexEdge].noise2D(this.x * frequency, this.y * frequency)
-    return distance + Math.round(seedHeight * 10)
+    return distance + Math.abs(Math.round(seedHeight * distance / 3))
   }
 
   private applyCropLeftTop(options: NoiseCropOptions, prop: string) {
     const intervalTiles = this.getIntervalTiles(options)
     let condition = this[prop] <= intervalTiles
     let blurA = intervalTiles
-    let blurB = intervalTiles + NoiseFilter.DEFAULT_MARGIN
+    let blurB = intervalTiles + (options.margin ?? NoiseFilter.DEFAULT_MARGIN)
     let blurDirection = true
     let additionalCondition = true
     if (options.area) {
@@ -88,7 +90,7 @@ class NoiseFilter {
     const val = this.noise[prop == 'y' ? 'worldHeight' : 'worldWidth'] - intervalTiles
     let condition = this[prop] >= val
     let blurA = val
-    let blurB = val - NoiseFilter.DEFAULT_MARGIN
+    let blurB = val - (options.margin ?? NoiseFilter.DEFAULT_MARGIN)
     let blurDirection = true
     let additionalCondition = true
     if (options.area) {
@@ -150,7 +152,7 @@ export class Noise {
   private simplexFilter: any
   private areas?: Area[]
   private crop?: Crop
-
+  
   constructor(options: NoiseOptions) {
       this.width = options.width
       this.height = options.height
@@ -189,7 +191,7 @@ export class Noise {
         }
       }
     }
-
+    
     // normalize the array of heights
     for (let x = 0; x < this.width; x++) {
       for (let y = 0; y < this.height; y++) {
@@ -200,44 +202,42 @@ export class Noise {
     return noiseArray
   }
 
-  private generateHeight(x: number, y: number): number {
-      let h = this.simplex.noise2D(x * this.frequency, y * this.frequency);
-
-      // if (true) {
-      //   h = Math.abs((h - 0.5) * 2);
-      //   h = 1 - h;
-      // }
-
-      const filter = new NoiseFilter(x, y, h, this, this.simplexFilter)
-
-      if (this.areas) {
-        for (let area of this.areas) {
-          h = filter.applyAroundCrop({
-            simplexEdge: 'edge',
-            area,
-            ...area.crop
-          })
-        }
+  generateGrid(): number[][] {
+    const noiseGrid = new NoiseGrid(this.width, this.height, 1)
+    let map = noiseGrid.setRandomPath()
+    for (let i=0 ; i < map.length ; i++) {
+      for (let j=0 ; j < map[i].length ; j++) {
+        map[i][j] = this.applyFilters(j, i, map[i][j])
       }
+    }
+    return map
+  }
 
-      if (this.crop) {
+  private generateHeight(x: number, y: number): number {
+      const h = this.simplex.noise2D(x * this.frequency, y * this.frequency)
+      return this.applyFilters(x, y, h)
+    }
+
+  private applyFilters(x: number, y: number, h: number): number {
+    const filter = new NoiseFilter(x, y, h, this, this.simplexFilter)
+
+    if (this.areas) {
+      for (let area of this.areas) {
         h = filter.applyAroundCrop({
           simplexEdge: 'edge',
-          ...this.crop
+          area,
+          ...area.crop
         })
       }
-      
-
-      // if (this.island) {
-      //   let d = MathUtils.distance(new Vector2D(x, y), new Vector2D(this.width / 2, this.height / 2))
-      //   d /= this.width / 200;
-      //   d = 1 - d;
-      //   h *= d
-      // }
-
-      // h = Math.max(0, h - this.threshold);
-      // h /= (1 - this.threshold);
-      
-      return h;
     }
+
+    if (this.crop) {
+      h = filter.applyAroundCrop({
+        simplexEdge: 'edge',
+        ...this.crop
+      })
+    }
+
+    return h
+  }
 }
