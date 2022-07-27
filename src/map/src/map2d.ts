@@ -204,6 +204,7 @@ export class Map2d extends Layer {
                 const hasParentGroup = this.positionHasGroup(posX, posY, zlayer as MapLayer)
                 if (hasParentGroup) {
                     stop = true
+                    return
                 }
             }
             if (conditionToDraw) {

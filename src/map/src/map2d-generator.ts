@@ -160,8 +160,8 @@ export class Map2dGenerator extends Map2d {
         this.applyTilesRule(noiseArray, subNoiseArray)
         this.crop(1, 1, this.width-1, this.height-1)
         this.autocomplete()
-        this.diffusion(noiseArray, subNoiseArray)
         this.transferMaps()
+        this.diffusion(noiseArray, subNoiseArray)
         this.generatedNb++
     }
 
