@@ -147,149 +147,148 @@ export class Map2d extends Layer {
         if (!Array.isArray(tilesBlocks)) {
             tilesBlocks = [tilesBlocks]
         }
-      for (let tilesBlock of tilesBlocks) {
         const { layerGroup, ignoreIfParentGroup, conditionToDraw, tilesetIndex, tilesCondition } = options
-        const _tilesetIndex = tilesetIndex ?? tilesBlock.tilesetIndex
-        const { tileset } = this.getTilesets(_tilesetIndex)
-        const zlayer = layerGroup ?? this
         let baseY = y
-
-        y -= tilesBlock.getOffsetY()
-
-        const findEmptyLayer = (posX: number, posY: number, tileToDraw?: Tile): 
-        { layer?: MapLayer, insert?: 'before' | 'add' } | undefined => {
-            let foundAvailableLayer = false
-            let findLayer: any = {
-                insert: 'add'
-            }
-            if (!tileToDraw) return
-            for (let layer of zlayer.getLayers(TiledLayerType.Tile)) {
-                const currentTileId = layer.get(posX, posY)
-                const currentTileBaseY = layer.getBaseY(posX, posY) ?? 0
-                if (currentTileId) {
-                    if (currentTileBaseY > baseY) {
-                        if (!findLayer.layer) {
+        y -= tilesBlocks[0].getOffsetY()
+        for (let tilesBlock of tilesBlocks) {
+            if (tilesBlock.ignore) continue
+            const _tilesetIndex = tilesetIndex ?? tilesBlock.tilesetIndex
+            const { tileset } = this.getTilesets(_tilesetIndex)
+            const zlayer = layerGroup ?? this
+            const findEmptyLayer = (posX: number, posY: number, tileToDraw?: Tile): 
+            { layer?: MapLayer, insert?: 'before' | 'add' } | undefined => {
+                let foundAvailableLayer = false
+                let findLayer: any = {
+                    insert: 'add'
+                }
+                if (!tileToDraw) return
+                for (let layer of zlayer.getLayers(TiledLayerType.Tile)) {
+                    const currentTileId = layer.get(posX, posY)
+                    const currentTileBaseY = layer.getBaseY(posX, posY) ?? 0
+                    if (currentTileId) {
+                        if (currentTileBaseY > baseY) {
+                            if (!findLayer.layer) {
+                                findLayer = {
+                                    layer,
+                                    insert: 'before'
+                                }
+                            }
+                            break
+                        }
+                        else {
                             findLayer = {
-                                layer,
-                                insert: 'before'
+                                insert: 'add'
                             }
                         }
-                        break
+                        foundAvailableLayer = false
                     }
-                    else {
+                    else if (!foundAvailableLayer) {
                         findLayer = {
-                            insert: 'add'
+                            layer
                         }
+                        foundAvailableLayer = true
                     }
-                    foundAvailableLayer = false
-                }
-                else if (!foundAvailableLayer) {
-                    findLayer = {
-                        layer
-                    }
-                    foundAvailableLayer = true
-                }
 
+                }
+                return findLayer
             }
-            return findLayer
-        }
 
-        const memoryReturn: any = []
-        let stop = false
+            const memoryReturn: any = []
+            let stop = false
 
-        tilesBlock.forEach((tileInfo, i, j) => {
-            const tile = tileInfo?.tileId
-            if (!tile) return
-            const posX = x+i
-            const posY = y+j
-            const tileToDraw = tileset.getTile(tile-1)
-            let layerInfo = findEmptyLayer(posX, posY, tileToDraw)
-            if (ignoreIfParentGroup) {
-                const hasParentGroup = this.positionHasGroup(posX, posY, zlayer as MapLayer)
-                if (hasParentGroup) {
-                    stop = true
-                    return
-                }
-            }
-            if (conditionToDraw) {
-                if (!conditionToDraw(tileInfo, posX, posY)) {
-                    return
-                }
-            }
-            if (stop || !layerInfo) return
-            let { layer, insert } = layerInfo
-            if (tilesCondition && tilesBlock.isTileBase(tileInfo)) {
-                const layers = [...zlayer.getLayers()].reverse()
-                let index
-                if (!layer) {
-                    index = layers[layers.length-1]
-                }
-                else {
-                    index = layers.findIndex(_layer => _layer.id == layer?.id)
-                    if (insert == 'before') {
-                        index =- 1
-                    }
-                }
-                for (let i=index ; i < layers.length ; i++) {
-                    const layer = layers[i]
-                    const tileId = layer?.get(posX, posY)
-                    if (!tileId) continue
-                    const tileset = this.findTileset(tileId)
-                    if (!tileset) continue
-                    //if (tilesCondition.tilesetIndex != tileset.index) continue
-                    const realTileId = tileId - tileset?.firstGid
-                    const foundConditionTile = tilesCondition.find((_tileInfo) => {
-                        const _tileId = _tileInfo?.tileId
-                        if (!_tileId) return false
-                        if (_tileId - 1 == realTileId) {
-                            return true
-                        }
-                        return false
-                    })
-                    if (realTileId == 0) {
-                        continue
-                    }
-                    else if (foundConditionTile) {
-                        break
-                    }
-                    else if (!foundConditionTile) {
+            tilesBlock.forEach((tileInfo, i, j) => {
+                const tile = tileInfo?.tileId
+                if (!tile) return
+                const posX = x+i
+                const posY = y+j
+                const tileToDraw = tileset.getTile(tile-1)
+                let layerInfo = findEmptyLayer(posX, posY, tileToDraw)
+                if (ignoreIfParentGroup) {
+                    const hasParentGroup = this.positionHasGroup(posX, posY, zlayer as MapLayer)
+                    if (hasParentGroup) {
                         stop = true
                         return
                     }
                 }
-            }
-            if (!layer) {
-                layer = zlayer.addLayer({
-                    name: ''
-                }, this)
-                layer.name = '[AutoLayer Added] #' + layer.id
-            }
-            else {
-                if (insert == 'before') {
-                    layer = zlayer.addLayerBefore(layer.id, {
+                if (conditionToDraw) {
+                    if (!conditionToDraw(tileInfo, posX, posY)) {
+                        return
+                    }
+                }
+                if (stop || !layerInfo) return
+                let { layer, insert } = layerInfo
+                if (tilesCondition && tilesBlock.isTileBase(tileInfo)) {
+                    const layers = [...zlayer.getLayers()].reverse()
+                    let index
+                    if (!layer) {
+                        index = layers[layers.length-1]
+                    }
+                    else {
+                        index = layers.findIndex(_layer => _layer.id == layer?.id)
+                        if (insert == 'before') {
+                            index =- 1
+                        }
+                    }
+                    for (let i=index ; i < layers.length ; i++) {
+                        const layer = layers[i]
+                        const tileId = layer?.get(posX, posY)
+                        if (!tileId) continue
+                        const tileset = this.findTileset(tileId)
+                        if (!tileset) continue
+                        //if (tilesCondition.tilesetIndex != tileset.index) continue
+                        const realTileId = tileId - tileset?.firstGid
+                        const foundConditionTile = tilesCondition.find((_tileInfo) => {
+                            const _tileId = _tileInfo?.tileId
+                            if (!_tileId) return false
+                            if (_tileId - 1 == realTileId) {
+                                return true
+                            }
+                            return false
+                        })
+                        if (realTileId == 0) {
+                            continue
+                        }
+                        else if (foundConditionTile) {
+                            break
+                        }
+                        else if (!foundConditionTile) {
+                            stop = true
+                            return
+                        }
+                    }
+                }
+                if (!layer) {
+                    layer = zlayer.addLayer({
                         name: ''
                     }, this)
-                    if (layer) layer.name = '[AutoLayer Before] #' + layer.id
+                    layer.name = '[AutoLayer Added] #' + layer.id
                 }
+                else {
+                    if (insert == 'before') {
+                        layer = zlayer.addLayerBefore(layer.id, {
+                            name: ''
+                        }, this)
+                        if (layer) layer.name = '[AutoLayer Before] #' + layer.id
+                    }
+                }
+                const mapLayer = layer as MapLayer
+                if (!mapLayer.isOutside(posX, posY)) {
+                    memoryReturn.push({
+                        layer: mapLayer,
+                        params: [posX, posY, tile, {
+                            tilesetIndex: _tilesetIndex,
+                            baseY
+                        }]
+                    })
+                } 
+            })
+
+            if (stop) return
+
+            for (let ret of memoryReturn) {
+                ret.layer.set(...ret.params)
             }
-            const mapLayer = layer as MapLayer
-            if (!mapLayer.isOutside(posX, posY)) {
-                memoryReturn.push({
-                    layer: mapLayer,
-                    params: [posX, posY, tile, {
-                        tilesetIndex: _tilesetIndex,
-                        baseY
-                    }]
-                })
-            } 
-        })
-
-        if (stop) return
-
-        for (let ret of memoryReturn) {
-            ret.layer.set(...ret.params)
         }
-      }
     }
 
     getAllLayers(): MapLayer[] {

@@ -72,6 +72,8 @@ enum GeneratePatternType {
     Grid = 'grid'
 }
 
+const CROP_EXCESS_PX = 4
+
 export class Map2dGenerator extends Map2d {
     private terrainRules: TerrainRules[] = []
     private diffusionRules?: DiffusionRules[]
@@ -88,8 +90,8 @@ export class Map2dGenerator extends Map2d {
 
     constructor(params: Map2dGeneratorOptions) {
         super(params)
-        this.width += 2
-        this.height += 2
+        this.width += CROP_EXCESS_PX
+        this.height += CROP_EXCESS_PX
         this.worldWidth = params.worldWidth
         this.worldHeight = params.worldHeight
         this.terrainRules = params.terrainRules.sort(((a, b) => a.height - b.height))
@@ -158,9 +160,10 @@ export class Map2dGenerator extends Map2d {
                 break;
         }
         this.applyTilesRule(noiseArray, subNoiseArray)
-        this.crop(1, 1, this.width-1, this.height-1)
+        const cropExcessPx = CROP_EXCESS_PX / 2
         this.autocomplete()
         this.transferMaps()
+        this.crop(cropExcessPx, cropExcessPx, this.width-cropExcessPx, this.height-cropExcessPx)
         this.diffusion(noiseArray, subNoiseArray)
         this.generatedNb++
     }
@@ -231,7 +234,7 @@ export class Map2dGenerator extends Map2d {
             const layerGroup = this._layerGroups.get(zLayer ?? 0)
             const layer = layerGroup?.getLastLayer()
             const rbush = new RBush(quantity)
-            if (!layer) return
+            if (!layer) continue
             for (let pt of diagram.vertices) {
                 const x = Math.floor(pt.x)
                 const y = Math.floor(pt.y)

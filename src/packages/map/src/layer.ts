@@ -262,7 +262,7 @@ export class MapLayer extends Layer {
     }
 
     /*
-    Si terrainArray n'existe pas (par  exemple, un carreau [0, 1, 1, 0]) alors la génération complète du carreau sera stoppé
+    If terrainArray does not exist (for example, a tile [0, 1, 1, 0]) then the complete generation of the tile will be stopped
      */
     setAutotile(terrainId: number, mapX: number, mapY: number, tilesetIndex: number = 0): Tile[] {
         const tilesetObj = this.map.getTilesets(tilesetIndex)

@@ -25,14 +25,16 @@ export class TilesGroup {
     tiles: (TileInfo | null)[][] = []
     width: number
     height: number
+    ignore: boolean = false
 
-    constructor(tiles: TileOptions[], public tilesetIndex: number = 0) {
+    constructor(tiles: TileOptions[], public tilesetIndex: number = 0, options: { ignore?: boolean } = {}) {
         const pointsX = tiles.map(tile => tile.x)
         const pointsY = tiles.map(tile => tile.y)
         const offsetX = Math.min(...pointsX)
         const offsetY = Math.min(...pointsY)
         this.width = Math.max(...pointsX) - offsetX + 1
         this.height = Math.max(...pointsY) - offsetY + 1
+        this.ignore = !!options.ignore
         this.fillTiles()
         for (let tile of tiles) {
             this.addTile(tile.x - offsetX, tile.y - offsetY, tile)

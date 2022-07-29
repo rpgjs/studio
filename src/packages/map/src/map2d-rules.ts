@@ -24,7 +24,9 @@ export class Map2dRules extends Map2d {
                         tileId
                     })
                 }
-                tileGroups.push(new TilesGroup(tilesOption, tilesetIndex))
+                tileGroups.push(new TilesGroup(tilesOption, tilesetIndex, {
+                    ignore: layer.name == 'region'
+                }))
             })
             this.tilesGroups.push(tileGroups)
         }
