@@ -339,7 +339,7 @@ export class MapLayer extends Layer {
         this.set(x, y, 0)
     }
 
-    findTilesGroupByBlock() {
+    findTilesGroupByBlock(): { x: number, y: number, tileId: number}[][] {
         const memoryMatrix = this.matrixClone()
         const blocks: any[] = []
         this.matrixForEach((id: number, x: number, y: number) => {

@@ -136,7 +136,7 @@ export class Map2d extends Layer {
         return false
     }
 
-    setTilesBlock(tilesBlock: TilesGroup, x: number, y: number, options: {
+    setTilesBlock(tilesBlocks: TilesGroup | TilesGroup[], x: number, y: number, options: {
         tilesetIndex?: number,
         tilesBase?: number[],
         layerGroup?: MapLayer,
@@ -144,12 +144,16 @@ export class Map2d extends Layer {
         ignoreIfParentGroup?: boolean
         conditionToDraw?: (tileInfo: TileInfo, x: number, y: number) => boolean
     } = {} as any) {
+        if (!Array.isArray(tilesBlocks)) {
+            tilesBlocks = [tilesBlocks]
+        }
+      for (let tilesBlock of tilesBlocks) {
         const { layerGroup, ignoreIfParentGroup, conditionToDraw, tilesetIndex, tilesCondition } = options
         const _tilesetIndex = tilesetIndex ?? tilesBlock.tilesetIndex
         const { tileset } = this.getTilesets(_tilesetIndex)
         const zlayer = layerGroup ?? this
         let baseY = y
-        
+
         y -= tilesBlock.getOffsetY()
 
         const findEmptyLayer = (posX: number, posY: number, tileToDraw?: Tile): 
@@ -285,6 +289,7 @@ export class Map2d extends Layer {
         for (let ret of memoryReturn) {
             ret.layer.set(...ret.params)
         }
+      }
     }
 
     getAllLayers(): MapLayer[] {

@@ -16,7 +16,7 @@ interface TerrainRules {
         layer: {
             name: string
             z?: number,
-            _cache: any,
+            _cache?: any,
             fillTileId?: number
         }
     }[]
@@ -34,12 +34,12 @@ export interface Area {
 
 interface BlockRules {
     id: string,
-    tiles: TilesGroup,
+    tiles: TilesGroup[],
     tilesetIndex: number,
     tilesBase:  number[],
     probability?: number,
     terrainCondition: number[],
-    tilesCondition?: TilesGroup
+    tilesCondition?: TilesGroup[]
 }
 
 interface DiffusionRules {
@@ -50,20 +50,20 @@ interface DiffusionRules {
 
 interface Map2dGeneratorOptions extends Map2dOptions {
     terrainRules: TerrainRules[],
-    fillTerrainId: number,
+    fillTerrainId?: number,
     frequency: number,
     threshold: number,
     worldWidth: number
     worldHeight: number
     diffusionRules?: DiffusionRules[],
-    areas: Area[],
+    areas?: Area[],
     crop?: Crop,
     island?: boolean,
     subNoise?: {
         frequency: number,
         threshold: number,
     },
-    autocompleteRules?: TilesGroup[],
+    autocompleteRules?: TilesGroup[][],
     seedId?: string
 }
 
@@ -83,7 +83,7 @@ export class Map2dGenerator extends Map2d {
     private areas: Area[] = []
     private _crop?: Crop
     private _params: Map2dGeneratorOptions
-    private autocompleteRules?: TilesGroup[]
+    private autocompleteRules?: TilesGroup[][]
     private generatedNb: number = 0
 
     constructor(params: Map2dGeneratorOptions) {
@@ -245,12 +245,13 @@ export class Map2dGenerator extends Map2d {
                 }
                 if (!layer.isOutside(x, y) && !inArea) {
                     const tile = ArrayUtils.probability<any>(tiles) as BlockRules
-                    const block: TilesGroup = tile.tiles
+                    const block: TilesGroup[] = tile.tiles
+                    const blockInfo = block[0]
                     const rect = {
                         minX: x,
                         minY: y,
-                        maxX: x + block.width,
-                        maxY: y + block.height
+                        maxX: x + blockInfo.width,
+                        maxY: y + blockInfo.height
                     }
                     const { terrainCondition, tilesCondition } = tile
                     const height = noiseArray[x][y]
@@ -280,7 +281,7 @@ export class Map2dGenerator extends Map2d {
                     this.setTilesBlock(block, x, y, {
                         ...tile,
                         layerGroup,
-                        tilesCondition,
+                        tilesCondition: tilesCondition?.[0],
                         ignoreIfParentGroup: true
                     })
                 }
@@ -303,18 +304,19 @@ export class Map2dGenerator extends Map2d {
                 }
                 for (let autoRules of this.autocompleteRules) {
                     const tilesetObj = this.findTileset(tileId-1)
+                    const [autoRulesInfo] = autoRules
                     const realTileId = tileId - (tilesetObj?.firstGid ?? 0)
-                    if (tilesetObj?.index != autoRules.tilesetIndex) {
+                    if (tilesetObj?.index != autoRulesInfo.tilesetIndex) {
                         return
                     }
-                    const [autoTiles] = autoRules.getTilesByFlag('autocomplete', true)
+                    const [autoTiles] = autoRulesInfo.getTilesByFlag('autocomplete', true)
                     const { tileInfo } = autoTiles
                     if (tileInfo.tileId == realTileId+1) {
                         const parent = layer.getParentLayer()
                         const beforeGroup = parent?.getBeforeLayer()
                         const zLayer = beforeGroup?.getProperty('z') ?? 0
                         const layerGroup = this._layerGroups.get(zLayer)
-                        this.setTilesBlock(autoRules, x, y + autoRules.height - 1, {
+                        this.setTilesBlock(autoRules, x, y + autoRulesInfo.height - 1, {
                             layerGroup,
                             conditionToDraw: (_tileInfo) => {
                                 return _tileInfo.tileId != tileInfo.tileId
