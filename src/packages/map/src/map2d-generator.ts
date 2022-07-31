@@ -67,7 +67,7 @@ interface Map2dGeneratorOptions extends Map2dOptions {
     seedId?: string
 }
 
-enum GeneratePatternType {
+export enum GeneratePatternType {
     Terrain = 'terrain',
     Grid = 'grid'
 }

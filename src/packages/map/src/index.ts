@@ -1,4 +1,4 @@
-import { Map2dGenerator } from "./map2d-generator";
+import { Map2dGenerator, GeneratePatternType } from "./map2d-generator";
 import { ImageProcessing } from './image'
 import {Tileset } from './tileset'
 import { Map2d } from './map2d'
@@ -11,5 +11,6 @@ export {
     ImageProcessing,
     Tileset,
     TilesGroup,
-    Map2dRules
+    Map2dRules,
+    GeneratePatternType
 }

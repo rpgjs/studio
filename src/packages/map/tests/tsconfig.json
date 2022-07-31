@@ -1,0 +1,29 @@
+{
+    "compilerOptions": {
+      "target": "es2017",
+      "module": "commonjs",
+      "outDir": "./dist",
+      "rootDir": ".",
+      "strict": true,
+      "sourceMap": true,
+      "strictNullChecks": true,
+      "strictPropertyInitialization": false,
+      "moduleResolution": "node",
+      "esModuleInterop": true,
+      "removeComments": false,
+      "noUnusedParameters": false,
+      "noUnusedLocals": false,
+      "noImplicitThis": false,
+      "noImplicitAny": false,
+      "noImplicitReturns": false,
+      "declaration": true,
+      "experimentalDecorators": true, 
+      "emitDecoratorMetadata": true,
+      "stripInternal": true
+    },
+    "include": [
+        "../src/**/*",
+        "./**/*"
+    ],
+    "exclude": ["node_modules"]
+  }
