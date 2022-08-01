@@ -319,10 +319,7 @@ export class Map2dGenerator extends Map2d {
                         const zLayer = beforeGroup?.getProperty('z') ?? 0
                         const layerGroup = this._layerGroups.get(zLayer)
                         this.setTilesBlock(autoRules, x, y + autoRulesInfo.height - 1, {
-                            layerGroup,
-                            conditionToDraw: (_tileInfo) => {
-                                return _tileInfo.tileId != tileInfo.tileId
-                            }
+                            layerGroup
                         })
                     }
                 }

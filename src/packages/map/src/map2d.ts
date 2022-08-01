@@ -328,6 +328,7 @@ export class Map2d extends Layer {
         const zlayer = layerGroup ?? this
 
         for (let tilesBlock of tilesBlocks) {
+            if (tilesBlock.ignore) continue
             tilesBlock.forEach((tileInfo, i, j) => {
                 const tile = tileInfo?.tileId
                 if (!tile) return
