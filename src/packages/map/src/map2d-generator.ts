@@ -72,7 +72,7 @@ export enum GeneratePatternType {
     Grid = 'grid'
 }
 
-const CROP_EXCESS_PX = 4
+const CROP_EXCESS_PX = 6
 
 export class Map2dGenerator extends Map2d {
     private terrainRules: TerrainRules[] = []
@@ -160,10 +160,9 @@ export class Map2dGenerator extends Map2d {
                 break;
         }
         this.applyTilesRule(noiseArray, subNoiseArray)
-        const cropExcessPx = CROP_EXCESS_PX / 2
         this.autocomplete()
         this.transferMaps()
-        this.crop(cropExcessPx, cropExcessPx, this.width-cropExcessPx, this.height-cropExcessPx)
+        this.crop(CROP_EXCESS_PX/2-1, CROP_EXCESS_PX/2-1, this.width-CROP_EXCESS_PX, this.height-CROP_EXCESS_PX)
         this.diffusion(noiseArray, subNoiseArray)
         this.generatedNb++
     }

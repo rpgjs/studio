@@ -1,17 +1,15 @@
-import { Map2dGenerator, GeneratePatternType, Tileset } from '../src/'
+import { Map2dGenerator, GeneratePatternType, MapLayer } from '../src/'
 import { Noise } from '../src/noise'
+import { js2xml } from 'xml-js'
 import tileset from './fixtures/tileset'
-import * as fs from 'fs'
+import street from './fixtures/street'
 
 describe('Checks the placement of buildings next to streets', () => {
     let map: Map2dGenerator
+    let matrix: number[][]
 
     beforeEach(() => {
-        /*Noise.prototype.generateGrid = jest.fn().mockReturnValue([
-            [
-
-            ]
-        ])*/
+        MapLayer.prototype.getMatrix = jest.fn().mockReturnValue(street)
         map = new Map2dGenerator({
             _attributes: {
                 width: 30,
@@ -54,12 +52,12 @@ describe('Checks the placement of buildings next to streets', () => {
               threshold: 0
         })
         map.generateTerrain(GeneratePatternType.Grid)
+        const [group] = map.getLayers()
+        matrix = group.getLayerByName('Street')?.getMatrix() as number[][]
     })
 
-    it('', () => {
-        const [group] = map.getLayers()
-        const matrix = group.getLayerByName('Street')?.getMatrix()
-        //console.log(matrix)
-        //fs.writeFileSync('test.tmx', js2xml(map.toXML(), { compact: true, spaces: 4 }), 'utf-8') 
+    it('Search for a free space', () => {
+        
+        
     })
 })

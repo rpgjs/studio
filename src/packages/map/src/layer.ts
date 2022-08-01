@@ -193,9 +193,9 @@ export class MapLayer extends Layer {
     }
 
     static cropArray(matrix: any[][], x: number, y: number, width: number, height: number): any[][] {
-        let crop = matrix.slice(x, x + width - 1)
+        let crop = matrix.slice(x, x + width)
         for (let i = 0; i < crop.length; i++){
-            if (crop[i]) crop[i] = crop[i].slice(y, y + height - 1)
+            if (crop[i]) crop[i] = crop[i].slice(y, y + height)
         }
         return crop
     }

@@ -33,6 +33,19 @@ interface MapTilesets {
     tileset: Tileset
 }
 
+interface TilesBlockOptions {
+    tilesetIndex?: number,
+    tilesBase?: number[],
+    layerGroup?: MapLayer,
+    tilesCondition?: TilesGroup
+    ignoreIfParentGroup?: boolean
+    conditionToDraw?: (tileInfo: TileInfo, x: number, y: number) => boolean
+    presenceOfOtherTiles?: {
+        tiles: TilesGroup,
+        gap?: number,
+        direction: ('top' | 'right' | 'bottom' | 'left')[]
+    }
+}
 
 export class Map2d extends Layer {
     private tilesets: MapTilesets[] = []
@@ -136,92 +149,85 @@ export class Map2d extends Layer {
         return false
     }
 
-    setTilesBlock(tilesBlocks: TilesGroup | TilesGroup[], x: number, y: number, options: {
-        tilesetIndex?: number,
-        tilesBase?: number[],
-        layerGroup?: MapLayer,
-        tilesCondition?: TilesGroup
-        ignoreIfParentGroup?: boolean
-        conditionToDraw?: (tileInfo: TileInfo, x: number, y: number) => boolean
-    } = {} as any) {
-        if (!Array.isArray(tilesBlocks)) {
-            tilesBlocks = [tilesBlocks]
+    private findEmptyLayer(posX: number, posY: number, zlayer: MapLayer | Map2d, baseY: number, tileToDraw?: Tile): 
+    { layer?: MapLayer, insert?: 'before' | 'add' } | undefined {
+        let foundAvailableLayer = false
+        let findLayer: any = {
+            insert: 'add'
         }
-        const { layerGroup, ignoreIfParentGroup, conditionToDraw, tilesetIndex, tilesCondition } = options
-        let baseY = y
-        y -= tilesBlocks[0].getOffsetY()
-        for (let tilesBlock of tilesBlocks) {
-            if (tilesBlock.ignore) continue
-            const _tilesetIndex = tilesetIndex ?? tilesBlock.tilesetIndex
-            const { tileset } = this.getTilesets(_tilesetIndex)
-            const zlayer = layerGroup ?? this
-            const findEmptyLayer = (posX: number, posY: number, tileToDraw?: Tile): 
-            { layer?: MapLayer, insert?: 'before' | 'add' } | undefined => {
-                let foundAvailableLayer = false
-                let findLayer: any = {
-                    insert: 'add'
-                }
-                if (!tileToDraw) return
-                for (let layer of zlayer.getLayers(TiledLayerType.Tile)) {
-                    const currentTileId = layer.get(posX, posY)
-                    const currentTileBaseY = layer.getBaseY(posX, posY) ?? 0
-                    if (currentTileId) {
-                        if (currentTileBaseY > baseY) {
-                            if (!findLayer.layer) {
-                                findLayer = {
-                                    layer,
-                                    insert: 'before'
-                                }
-                            }
-                            break
-                        }
-                        else {
-                            findLayer = {
-                                insert: 'add'
-                            }
-                        }
-                        foundAvailableLayer = false
-                    }
-                    else if (!foundAvailableLayer) {
+        if (!tileToDraw) return
+        for (let layer of zlayer.getLayers(TiledLayerType.Tile)) {
+            const currentTileId = layer.get(posX, posY)
+            const currentTileBaseY = layer.getBaseY(posX, posY) ?? 0
+            if (currentTileId) {
+                if (currentTileBaseY > baseY) {
+                    if (!findLayer.layer) {
                         findLayer = {
-                            layer
+                            layer,
+                            insert: 'before'
                         }
-                        foundAvailableLayer = true
                     }
-
+                    break
                 }
-                return findLayer
+                else {
+                    findLayer = {
+                        insert: 'add'
+                    }
+                }
+                foundAvailableLayer = false
+            }
+            else if (!foundAvailableLayer) {
+                findLayer = {
+                    layer
+                }
+                foundAvailableLayer = true
             }
 
-            const memoryReturn: any = []
-            let stop = false
+        }
+        return findLayer
+    }
 
-            tilesBlock.forEach((tileInfo, i, j) => {
-                const tile = tileInfo?.tileId
-                if (!tile) return
-                const posX = x+i
-                const posY = y+j
-                const tileToDraw = tileset.getTile(tile-1)
-                let layerInfo = findEmptyLayer(posX, posY, tileToDraw)
-                if (ignoreIfParentGroup) {
-                    const hasParentGroup = this.positionHasGroup(posX, posY, zlayer as MapLayer)
-                    if (hasParentGroup) {
-                        stop = true
-                        return
-                    }
+    canSetTilesBlocks(tilesBlocks: TilesGroup[], x: number, y: number, options: TilesBlockOptions = {} as any): boolean {
+        const { layerGroup, ignoreIfParentGroup, conditionToDraw, tilesetIndex, tilesCondition, presenceOfOtherTiles } = options
+        const tilesBlock = tilesBlocks[0]
+        let baseY = y
+        y -= tilesBlock.getOffsetY()
+        let stop = false
+        const _tilesetIndex = tilesetIndex ?? tilesBlock.tilesetIndex
+        const { tileset } = this.getTilesets(_tilesetIndex)
+        const zlayer = layerGroup ?? this
+        tilesBlock.forEach((tileInfo, i, j) => {
+            const tile = tileInfo?.tileId
+            if (!tile) return
+            const posX = x+i
+            const posY = y+j
+            const tileToDraw = tileset.getTile(tile-1)
+            let layerInfo = this.findEmptyLayer(posX, posY, zlayer, baseY, tileToDraw)
+            if (ignoreIfParentGroup) {
+                const hasParentGroup = this.positionHasGroup(posX, posY, zlayer as MapLayer)
+                if (hasParentGroup) {
+                    stop = true
+                    return
                 }
-                if (conditionToDraw) {
-                    if (!conditionToDraw(tileInfo, posX, posY)) {
-                        return
-                    }
+            }
+            if (conditionToDraw) {
+                if (!conditionToDraw(tileInfo, posX, posY)) {
+                    stop = true
+                    return
                 }
-                if (stop || !layerInfo) return
-                let { layer, insert } = layerInfo
-                if (tilesCondition && tilesBlock.isTileBase(tileInfo)) {
+            }
+            if (stop || !layerInfo) return
+            let { layer, insert } = layerInfo
+            if (tilesBlock.isTileBase(tileInfo)) {
+                const findOtherTile = (tilesCondition: TilesGroup, posX: number, posY: number) => {
+                    let stop = false
                     const layers = [...zlayer.getLayers()].reverse()
+                    if (layers.length == 0) {
+                        return false
+                    }
                     let index
                     if (!layer) {
-                        index = layers[layers.length-1]
+                        index = layers.length-1
                     }
                     else {
                         index = layers.findIndex(_layer => _layer.id == layer?.id)
@@ -232,9 +238,15 @@ export class Map2d extends Layer {
                     for (let i=index ; i < layers.length ; i++) {
                         const layer = layers[i]
                         const tileId = layer?.get(posX, posY)
-                        if (!tileId) continue
+                        if (!tileId) {
+                            stop = true
+                            continue
+                        }
                         const tileset = this.findTileset(tileId)
-                        if (!tileset) continue
+                        if (!tileset) {
+                            stop = true
+                            continue
+                        }
                         //if (tilesCondition.tilesetIndex != tileset.index) continue
                         const realTileId = tileId - tileset?.firstGid
                         const foundConditionTile = tilesCondition.find((_tileInfo) => {
@@ -246,17 +258,85 @@ export class Map2d extends Layer {
                             return false
                         })
                         if (realTileId == 0) {
+                            stop = true
                             continue
                         }
                         else if (foundConditionTile) {
+                            stop = false
                             break
                         }
                         else if (!foundConditionTile) {
+                            return false
+                        }
+                    }
+                    return !stop
+                }
+                if (tilesCondition) {
+                    stop = !findOtherTile(tilesCondition, posX, posY)
+                }
+                if (presenceOfOtherTiles) {
+                    const { gap = 1, direction, tiles } = presenceOfOtherTiles
+                    for (let dir of direction) {
+                        let and = 1
+                        switch (dir) {
+                            case 'top':
+                                and &= +findOtherTile(tiles, posX, posY - gap)
+                                break
+                            case 'bottom':
+                                and &= +findOtherTile(tiles, posX, posY + gap)
+                                break
+                            case 'left':
+                                const tileleft = tilesBlock.tilesBase[0]
+                                if (tileleft?.id == tileInfo.id) {
+                                    and &= +findOtherTile(tiles, posX - gap, posY)
+                                }
+                                break
+                            case 'right':
+                                const tileRight = tilesBlock.tilesBase[tilesBlock.tilesBaseWidth-1]
+                                if (tileRight?.id == tileInfo.id) {
+                                    and &= +findOtherTile(tiles, posX + gap, posY)
+                                }
+                                break
+                            default:
+                                and = 0
+                                break
+                        }
+                        if (!and) {
                             stop = true
-                            return
                         }
                     }
                 }
+            }
+            
+        })
+        return !stop
+    }
+
+    setTilesBlock(tilesBlocks: TilesGroup | TilesGroup[], x: number, y: number, options: TilesBlockOptions = {}) {
+        if (!Array.isArray(tilesBlocks)) {
+            tilesBlocks = [tilesBlocks]
+        }
+        const canSet = this.canSetTilesBlocks(tilesBlocks, x, y, options)
+        if (!canSet) return false
+
+        const { layerGroup, tilesetIndex } = options
+        const tilesBlock = tilesBlocks[0]
+        let baseY = y
+        y -= tilesBlock.getOffsetY()
+        const _tilesetIndex = tilesetIndex ?? tilesBlock.tilesetIndex
+        const { tileset } = this.getTilesets(_tilesetIndex)
+        const zlayer = layerGroup ?? this
+
+        for (let tilesBlock of tilesBlocks) {
+            tilesBlock.forEach((tileInfo, i, j) => {
+                const tile = tileInfo?.tileId
+                if (!tile) return
+                const posX = x+i
+                const posY = y+j
+                const tileToDraw = tileset.getTile(tile-1)
+                let layerInfo = this.findEmptyLayer(posX, posY, zlayer, baseY, tileToDraw)
+                if (!layerInfo) return
+                let { layer, insert } = layerInfo
                 if (!layer) {
                     layer = zlayer.addLayer({
                         name: ''
@@ -273,22 +353,35 @@ export class Map2d extends Layer {
                 }
                 const mapLayer = layer as MapLayer
                 if (!mapLayer.isOutside(posX, posY)) {
-                    memoryReturn.push({
-                        layer: mapLayer,
-                        params: [posX, posY, tile, {
-                            tilesetIndex: _tilesetIndex,
-                            baseY
-                        }]
+                    mapLayer.set(posX, posY, tile, {
+                        tilesetIndex: _tilesetIndex,
+                        baseY
                     })
-                } 
+                }
             })
+        }
+    }
 
-            if (stop) return
-
-            for (let ret of memoryReturn) {
-                ret.layer.set(...ret.params)
+    searchTilesToSetTilesBlock(tilesBlocks: TilesGroup[], options: TilesBlockOptions = {}): {
+        x: number, 
+        y: number
+    }[] {
+        const tiles: {
+            x: number, 
+            y: number
+        }[] = []
+        for (let i=0 ; i < this.width ; i++) {
+            for (let j=0 ; j < this.height ; j++) {
+                const bool = this.canSetTilesBlocks(tilesBlocks, i, j, options)
+                if (bool) {
+                    tiles.push({
+                        x: i,
+                        y: j
+                    })
+                }
             }
         }
+        return tiles
     }
 
     getAllLayers(): MapLayer[] {
@@ -296,8 +389,8 @@ export class Map2d extends Layer {
     }
 
     crop(x: number, y: number, width: number, height: number) {
-        this.width = width - x
-        this.height = height - y
+        this.width = width
+        this.height = height
         this.getAllLayers().forEach(layer => layer.crop(x, y, width, height))
     }
 

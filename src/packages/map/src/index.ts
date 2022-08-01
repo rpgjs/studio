@@ -4,6 +4,7 @@ import {Tileset } from './tileset'
 import { Map2d } from './map2d'
 import { TilesGroup } from './tile-group'
 import { Map2dRules } from './map2d-rules'
+import { MapLayer } from './layer'
 
 export { 
     Map2dGenerator,
@@ -12,5 +13,6 @@ export {
     Tileset,
     TilesGroup,
     Map2dRules,
-    GeneratePatternType
+    GeneratePatternType,
+    MapLayer
 }

@@ -45,6 +45,14 @@ export class TilesGroup {
         return this.tiles[this.tiles.length-1]
     }
 
+    get tilesBaseWidth(): number {
+        return this.tilesBase.length
+    }
+
+    get tilesBaseHeight(): number {
+        return 1
+    }
+
     forEach(cb: (tileInfo: TileInfo | null, x: number, y: number) => void) {
         for (let i=0 ; i < this.tiles.length ; i++) {
             for (let j=0 ; j < this.tiles[i].length ; j++) {
