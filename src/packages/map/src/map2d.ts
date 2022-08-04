@@ -39,7 +39,7 @@ interface TilesBlockOptions {
     layerGroup?: MapLayer,
     tilesCondition?: TilesGroup
     ignoreIfParentGroup?: boolean
-    conditionToDraw?: (tileInfo: TileInfo, x: number, y: number) => boolean
+    conditionToDrawTile?: (tileInfo: TileInfo, x: number, y: number) => boolean
     presenceOfOtherTiles?: {
         tiles: TilesGroup,
         gap?: number,
@@ -188,7 +188,7 @@ export class Map2d extends Layer {
     }
 
     canSetTilesBlocks(tilesBlocks: TilesGroup[], x: number, y: number, options: TilesBlockOptions = {} as any): boolean {
-        const { layerGroup, ignoreIfParentGroup, conditionToDraw, tilesetIndex, tilesCondition, presenceOfOtherTiles } = options
+        const { layerGroup, ignoreIfParentGroup,  tilesetIndex, tilesCondition, presenceOfOtherTiles } = options
         const tilesBlock = tilesBlocks[0]
         let baseY = y
         y -= tilesBlock.getOffsetY()
@@ -206,12 +206,6 @@ export class Map2d extends Layer {
             if (ignoreIfParentGroup) {
                 const hasParentGroup = this.positionHasGroup(posX, posY, zlayer as MapLayer)
                 if (hasParentGroup) {
-                    stop = true
-                    return
-                }
-            }
-            if (conditionToDraw) {
-                if (!conditionToDraw(tileInfo, posX, posY)) {
                     stop = true
                     return
                 }
@@ -335,6 +329,11 @@ export class Map2d extends Layer {
                 const posX = x+i
                 const posY = y+j
                 const tileToDraw = tileset.getTile(tile-1)
+                if (options.conditionToDrawTile) {
+                    if (!options.conditionToDrawTile(tileInfo, posX, posY)) {
+                        return
+                    }
+                }
                 let layerInfo = this.findEmptyLayer(posX, posY, zlayer, baseY, tileToDraw)
                 if (!layerInfo) return
                 let { layer, insert } = layerInfo

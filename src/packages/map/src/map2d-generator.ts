@@ -162,8 +162,8 @@ export class Map2dGenerator extends Map2d {
         this.applyTilesRule(noiseArray, subNoiseArray)
         this.autocomplete()
         this.transferMaps()
-        this.crop(CROP_EXCESS_PX/2-1, CROP_EXCESS_PX/2-1, this.width-CROP_EXCESS_PX, this.height-CROP_EXCESS_PX)
         this.diffusion(noiseArray, subNoiseArray)
+        this.crop(CROP_EXCESS_PX/2-1, CROP_EXCESS_PX/2-1, this.width-CROP_EXCESS_PX, this.height-CROP_EXCESS_PX)
         this.generatedNb++
     }
 
@@ -319,7 +319,10 @@ export class Map2dGenerator extends Map2d {
                         const zLayer = beforeGroup?.getProperty('z') ?? 0
                         const layerGroup = this._layerGroups.get(zLayer)
                         this.setTilesBlock(autoRules, x, y + autoRulesInfo.height - 1, {
-                            layerGroup
+                            layerGroup,
+                            conditionToDrawTile: (_tileInfo) => {
+                                return _tileInfo.tileId != tileInfo.tileId
+                            }
                         })
                     }
                 }

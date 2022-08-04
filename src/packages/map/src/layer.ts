@@ -131,13 +131,18 @@ export class MapLayer extends Layer {
         this.map = map
         if (this.type == TiledLayerType.Tile) {
             if (!this.layerObj.data.content) {
-                this.fill(this.layerObj.fillTileId)
+                this.fill(this.layerObj.fillTileId ?? 0)
             }
             else if (this.layerObj.data.encoding == 'csv') {
                 this.matrix = MapLayer.csvToMatrix(this.layerObj.data.content, this.map.width)
             }
+            this.loadBaseY()
         }
         return this
+    }
+
+    private loadBaseY() {
+        this.fill(undefined, 'baseY')
     }
 
     static csvToMatrix(csv: string, width: number): number[][] {
@@ -167,11 +172,11 @@ export class MapLayer extends Layer {
         return array.join(',')
     }
 
-    private fill(tileId = 0) {
+    private fill(tileId?, matrixType: string = 'matrix') {
         for (let i=0 ; i < this.map.width ; i++) {
-            this.matrix[i] = []
+            this[matrixType][i] = []
             for (let j=0 ; j < this.map.height ; j++) {
-                this.matrix[i][j] = tileId
+                this[matrixType][i][j] = tileId
             }
         }
     }
@@ -203,7 +208,13 @@ export class MapLayer extends Layer {
     crop(x: number, y: number, width: number, height: number) {
         this.matrix = MapLayer.cropArray(this.matrix, x, y, width, height)
         if (this.baseY) {
-           this.baseY = MapLayer.cropArray(this.baseY, x, y, width, height)
+            this.baseY = MapLayer.cropArray(this.baseY, x, y, width, height)
+            for (let i=0 ; i < this.baseY.length ; i++) {
+                for (let j=0 ; j < this.baseY[i].length ; j++) {
+                    const baseY = this.baseY[i][j]
+                    if (baseY) this.baseY[i][j] = baseY - y
+                }
+            }
         }    
     }
 
