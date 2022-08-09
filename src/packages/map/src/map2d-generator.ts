@@ -162,8 +162,8 @@ export class Map2dGenerator extends Map2d {
         this.applyTilesRule(noiseArray, subNoiseArray)
         this.autocomplete()
         this.transferMaps()
-        this.diffusion(noiseArray, subNoiseArray)
         this.crop(CROP_EXCESS_PX/2-1, CROP_EXCESS_PX/2-1, this.width-CROP_EXCESS_PX, this.height-CROP_EXCESS_PX)
+        this.diffusion(noiseArray, subNoiseArray)
         this.generatedNb++
     }
 
@@ -176,7 +176,7 @@ export class Map2dGenerator extends Map2d {
                     const zlayer = z ?? 0
                     if (!this._layerGroups.has(zlayer)) {
                         const groupLayer = this.addLayerAsGroup(name, this)
-                        groupLayer.addProperty('z', zlayer, 'int')
+                        //groupLayer.addProperty('z', zlayer, 'int')
                         this._layerGroups.set(zlayer, groupLayer)
                     }
                     const groupLayer = this._layerGroups.get(zlayer) as MapLayer
@@ -315,11 +315,8 @@ export class Map2dGenerator extends Map2d {
                     const { tileInfo } = autoTiles
                     if (tileInfo.tileId == realTileId+1) {
                         const parent = layer.getParentLayer()
-                        const beforeGroup = parent?.getBeforeLayer()
-                        const zLayer = beforeGroup?.getProperty('z') ?? 0
-                        const layerGroup = this._layerGroups.get(zLayer)
                         this.setTilesBlock(autoRules, x, y + autoRulesInfo.height - 1, {
-                            layerGroup,
+                            layerGroup: parent,
                             conditionToDrawTile: (_tileInfo) => {
                                 return _tileInfo.tileId != tileInfo.tileId
                             }

@@ -96,14 +96,14 @@ describe('Checks the placement of buildings next to streets', () => {
             expect(bool).toBe(true)
         })
 
-        it('Can Set Tile Block (conditionToDraw options)', () => {
+        /*it('Can Set Tile Block (conditionToDraw options)', () => {
             const bool = map.canSetTilesBlocks(rule.getTilesGroup(), 0, 0, {
-                conditionToDraw() {
+                conditionToDrawTile() {
                     return false
                 }
             })
             expect(bool).toBe(false)
-        })
+        })*/
 
         it('Search All Tiles To Set Tiles Block', () => {
             const tiles = map.searchTilesToSetTilesBlock(rule.getTilesGroup())
