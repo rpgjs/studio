@@ -9,6 +9,7 @@ const build = buildConfig({
   serverURL: 'http://localhost:8080',
   admin: {
     user: Users.slug,
+    disable: process.env.PAYLOAD_DISABLE_ADMIN == 'true'
   },
   collections: [
     Users,

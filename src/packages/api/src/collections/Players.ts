@@ -1,8 +1,6 @@
 import { CollectionConfig } from 'payload/types';
-import payload, { Payload } from 'payload';
 import { MissingFieldType } from 'payload/dist/errors'
 import { createAccess, readAccess } from '../access/read';
-import { PlayerJWTStrategy } from '../auth/strategies/player-jwt';
 
 const Players: CollectionConfig = {
   slug: 'players',
@@ -25,12 +23,16 @@ const Players: CollectionConfig = {
         type: 'relationship',
         relationTo: ['games'],
         required: true
+    },
+    {
+      name: 'data',
+      type: 'code',
+      admin: {
+        language: 'json'
     }
+  }
   ],
   hooks: {
-   /* afterLogin: [({ req }) => {
-        throw 'Not !'
-    }],*/
     beforeOperation: [({ args }) => {
       args.collection.Model.schema.plugins[2].opts.findByUsername = (model, params) => {
         const gameId = args?.data?.game?.value
@@ -42,16 +44,6 @@ const Players: CollectionConfig = {
         }
         return model.findOne({ email, 'game.value': gameId })
        }
-       /*findByUsername = async (email) => {
-        const gameId = args?.data?.game?.value
-        if (!gameId) {
-          const error = new MissingFieldType(args.collection.config.fields.find(field => field.name == 'game'))
-          error.status = 400
-          throw error
-        }
-        const user = await args.collection.Model.findOne({ email, 'game.value': gameId})
-        return user
-       }*/
     }]
   }
 };
